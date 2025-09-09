@@ -27,12 +27,23 @@
             outline-offset: 2px;
         }
         
+        /* Layout principal */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
         /* Cabeçalho */
         .header {
             background-color: #009440;
             color: white;
             padding: 1rem 0;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
         }
         
         .header-content {
@@ -52,58 +63,111 @@
             opacity: 0.9;
         }
         
-        /* Container principal */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem 1rem;
+        /* Menu lateral */
+        .sidebar {
+            width: 280px;
+            background: white;
+            box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 120px;
+            left: 0;
+            bottom: 0;
+            overflow-y: auto;
+            z-index: 999;
         }
         
-        /* Navegação por abas */
-        .nav-tabs {
-            display: flex;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-            overflow: hidden;
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #eee;
         }
         
-        .nav-tab {
-            flex: 1;
-            padding: 1rem;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 500;
+        .sidebar-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .menu-section {
+            padding: 1rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .menu-section-title {
+            padding: 0 1.5rem 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
             color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .menu-item {
+            display: block;
+            padding: 0.75rem 1.5rem;
+            color: #555;
+            text-decoration: none;
             transition: all 0.3s ease;
-            border-bottom: 3px solid transparent;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.95rem;
         }
         
-        .nav-tab:hover {
+        .menu-item:hover {
             background-color: #f8f9fa;
             color: #009440;
+            padding-left: 2rem;
         }
         
-        .nav-tab.active {
-            color: #009440;
-            border-bottom-color: #009440;
-            background-color: #f8f9fa;
+        .menu-item.active {
+            background-color: #009440;
+            color: white;
+            border-left: 4px solid #007a35;
         }
         
-        /* Conteúdo das abas */
-        .tab-content {
+        .menu-item.active:hover {
+            background-color: #007a35;
+            color: white;
+            padding-left: 1.5rem;
+        }
+        
+        /* Conteúdo principal */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            margin-top: 120px;
+            padding: 2rem;
+        }
+        
+        /* Seções de conteúdo */
+        .content-section {
             display: none;
         }
         
-        .tab-content.active {
+        .content-section.active {
             display: block;
         }
         
-        /* Seção de filtros */
-        .filters-section {
+        .section-header {
+            margin-bottom: 2rem;
+        }
+        
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        .section-subtitle {
+            color: #666;
+            font-size: 1rem;
+        }
+        
+        /* Filtros */
+        .filters-card {
             background: white;
             padding: 1.5rem;
             border-radius: 8px;
@@ -181,7 +245,7 @@
         }
         
         /* Resultados */
-        .results-section {
+        .results-card {
             background: white;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -288,8 +352,17 @@
         
         /* Responsividade */
         @media (max-width: 768px) {
-            .nav-tabs {
-                flex-direction: column;
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
             }
             
             .filters-grid {
@@ -350,139 +423,263 @@
         </div>
     </header>
 
-    <main class="container" role="main">
-        <!-- Navegação por abas -->
-        <nav class="nav-tabs" role="tablist" aria-label="Navegação principal">
-            <button class="nav-tab active" role="tab" aria-selected="true" aria-controls="consulta-tab" id="consulta-btn">
-                Consulta de Dados
-            </button>
-            <button class="nav-tab" role="tab" aria-selected="false" aria-controls="estatisticas-tab" id="estatisticas-btn">
-                Estatísticas
-            </button>
-            <button class="nav-tab" role="tab" aria-selected="false" aria-controls="admin-tab" id="admin-btn">
-                Administração
-            </button>
+    <div class="app-container">
+        <!-- Menu Lateral -->
+        <nav class="sidebar" role="navigation" aria-label="Menu principal">
+            <div class="sidebar-header">
+                <h2 class="sidebar-title">Menu de Navegação</h2>
+            </div>
+            
+            <div class="menu-section">
+                <div class="menu-section-title">Conselhos</div>
+                <button class="menu-item active" data-section="conselho-pcd" role="menuitem">
+                    Conselho da Pessoa com Deficiência
+                </button>
+                <button class="menu-item" data-section="conselho-idoso" role="menuitem">
+                    Conselho do Idoso
+                </button>
+                <button class="menu-item" data-section="cmas" role="menuitem">
+                    CMAS - Assistência Social
+                </button>
+                <button class="menu-item" data-section="cmdca" role="menuitem">
+                    CMDCA - Criança e Adolescente
+                </button>
+            </div>
+            
+            <div class="menu-section">
+                <div class="menu-section-title">Dados Institucionais</div>
+                <button class="menu-item" data-section="estabelecimentos" role="menuitem">
+                    Estabelecimentos de Apoio
+                </button>
+                <button class="menu-item" data-section="drads" role="menuitem">
+                    Rede DRADS
+                </button>
+            </div>
+            
+            <div class="menu-section">
+                <div class="menu-section-title">Estatísticas</div>
+                <button class="menu-item" data-section="stats-pcd" role="menuitem">
+                    Estatísticas - Pessoa com Deficiência
+                </button>
+                <button class="menu-item" data-section="stats-idoso" role="menuitem">
+                    Estatísticas - Idoso
+                </button>
+                <button class="menu-item" data-section="stats-geral" role="menuitem">
+                    Estatísticas Gerais
+                </button>
+            </div>
+            
+            <div class="menu-section">
+                <div class="menu-section-title">Administração</div>
+                <button class="menu-item" data-section="admin" role="menuitem">
+                    Área Administrativa
+                </button>
+            </div>
         </nav>
 
-        <!-- Aba de Consulta -->
-        <div id="consulta-tab" class="tab-content active" role="tabpanel" aria-labelledby="consulta-btn">
-            <section class="filters-section" aria-labelledby="filtros-title">
-                <h2 id="filtros-title" class="filters-title">Filtros de Consulta</h2>
-                
-                <form id="filtros-form" class="filters-grid">
-                    <div class="form-group">
-                        <label for="macrorregiao" class="form-label">Macrorregião</label>
-                        <select id="macrorregiao" class="form-control" aria-describedby="macrorregiao-help">
-                            <option value="">Todas as Macrorregiões</option>
-                        </select>
-                        <div id="macrorregiao-help" class="sr-only">Selecione uma macrorregião para filtrar os municípios</div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="drads" class="form-label">DRADS</label>
-                        <select id="drads" class="form-control" aria-describedby="drads-help">
-                            <option value="">Todas as DRADS</option>
-                        </select>
-                        <div id="drads-help" class="sr-only">Selecione uma DRADS para filtrar os municípios</div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="conselho-pcd" class="form-label">Conselho PcD</label>
-                        <select id="conselho-pcd" class="form-control" aria-describedby="conselho-help">
-                            <option value="">Todos os Status</option>
-                            <option value="Sim">Com Conselho Ativo</option>
-                            <option value="Não há registro">Sem Conselho</option>
-                        </select>
-                        <div id="conselho-help" class="sr-only">Filtre por existência de Conselho da Pessoa com Deficiência</div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="busca" class="form-label">Buscar Município</label>
-                        <input type="text" id="busca" class="form-control" placeholder="Digite o nome do município" aria-describedby="busca-help">
-                        <div id="busca-help" class="sr-only">Digite parte do nome do município para buscar</div>
-                    </div>
-                </form>
-                
-                <div style="margin-top: 1rem;">
-                    <button type="button" id="aplicar-filtros" class="btn btn-primary">Aplicar Filtros</button>
-                    <button type="button" id="limpar-filtros" class="btn btn-secondary">Limpar Filtros</button>
-                </div>
-            </section>
-
-            <section class="results-section" aria-labelledby="resultados-title">
-                <div class="results-header">
-                    <h2 id="resultados-title" class="results-title">Resultados da Consulta</h2>
-                    <div id="results-count" class="results-count" aria-live="polite">Carregando dados...</div>
+        <!-- Conteúdo Principal -->
+        <main class="main-content" role="main">
+            <!-- Seção: Conselho PcD -->
+            <section id="conselho-pcd" class="content-section active">
+                <div class="section-header">
+                    <h1 class="section-title">Conselho da Pessoa com Deficiência</h1>
+                    <p class="section-subtitle">Consulta e dados dos Conselhos Municipais da Pessoa com Deficiência no Estado de São Paulo</p>
                 </div>
                 
-                <div id="loading" class="loading" aria-live="polite">
-                    Carregando dados dos municípios...
-                </div>
-                
-                <div id="error-message" class="alert alert-error" style="display: none;" role="alert">
-                </div>
-                
-                <div class="table-container">
-                    <table id="municipios-table" class="table" style="display: none;" role="table" aria-labelledby="resultados-title">
-                        <thead>
-                            <tr role="row">
-                                <th scope="col">Município</th>
-                                <th scope="col">DRADS</th>
-                                <th scope="col">Macrorregião</th>
-                                <th scope="col">População 2025</th>
-                                <th scope="col">Conselho PcD</th>
-                                <th scope="col">CMAS</th>
-                                <th scope="col">CMDCA</th>
-                            </tr>
-                        </thead>
-                        <tbody id="municipios-tbody">
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
-
-        <!-- Aba de Estatísticas -->
-        <div id="estatisticas-tab" class="tab-content" role="tabpanel" aria-labelledby="estatisticas-btn">
-            <section aria-labelledby="stats-title">
-                <h2 id="stats-title" class="filters-title">Estatísticas Gerais</h2>
-                
-                <div id="stats-loading" class="loading" aria-live="polite">
-                    Carregando estatísticas...
-                </div>
-                
-                <div id="stats-content" style="display: none;">
-                    <div class="stats-grid" id="stats-grid">
-                        <!-- Estatísticas serão carregadas aqui -->
-                    </div>
-                    
-                    <div class="results-section">
-                        <div class="results-header">
-                            <h3 class="results-title">Estatísticas por Macrorregião</h3>
+                <div class="filters-card">
+                    <h2 class="filters-title">Filtros de Consulta</h2>
+                    <form class="filters-grid" id="filtros-pcd">
+                        <div class="form-group">
+                            <label for="macrorregiao-pcd" class="form-label">Macrorregião</label>
+                            <select id="macrorregiao-pcd" class="form-control">
+                                <option value="">Todas as Macrorregiões</option>
+                            </select>
                         </div>
-                        <div class="table-container">
-                            <table class="table" role="table">
-                                <thead>
-                                    <tr role="row">
-                                        <th scope="col">Macrorregião</th>
-                                        <th scope="col">Total de Municípios</th>
-                                        <th scope="col">Com Conselho PcD</th>
-                                        <th scope="col">Percentual</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="stats-macro-tbody">
-                                </tbody>
-                            </table>
+                        
+                        <div class="form-group">
+                            <label for="drads-pcd" class="form-label">DRADS</label>
+                            <select id="drads-pcd" class="form-control">
+                                <option value="">Todas as DRADS</option>
+                            </select>
                         </div>
+                        
+                        <div class="form-group">
+                            <label for="status-pcd" class="form-label">Status do Conselho</label>
+                            <select id="status-pcd" class="form-control">
+                                <option value="">Todos os Status</option>
+                                <option value="Sim">Com Conselho Ativo</option>
+                                <option value="Não há registro">Sem Conselho</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="busca-pcd" class="form-label">Buscar Município</label>
+                            <input type="text" id="busca-pcd" class="form-control" placeholder="Digite o nome do município">
+                        </div>
+                    </form>
+                    
+                    <div style="margin-top: 1rem;">
+                        <button type="button" class="btn btn-primary" onclick="aplicarFiltros('pcd')">Aplicar Filtros</button>
+                        <button type="button" class="btn btn-secondary" onclick="limparFiltros('pcd')">Limpar Filtros</button>
+                    </div>
+                </div>
+
+                <div class="results-card">
+                    <div class="results-header">
+                        <h2 class="results-title">Resultados da Consulta</h2>
+                        <div id="results-count-pcd" class="results-count">Carregando dados...</div>
+                    </div>
+                    
+                    <div id="loading-pcd" class="loading">
+                        Carregando dados dos municípios...
+                    </div>
+                    
+                    <div class="table-container">
+                        <table id="table-pcd" class="table" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Município</th>
+                                    <th scope="col">DRADS</th>
+                                    <th scope="col">Macrorregião</th>
+                                    <th scope="col">População 2025</th>
+                                    <th scope="col">Conselho PcD</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-pcd">
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>
-        </div>
 
-        <!-- Aba de Administração -->
-        <div id="admin-tab" class="tab-content" role="tabpanel" aria-labelledby="admin-btn">
-            <section aria-labelledby="admin-title">
-                <h2 id="admin-title" class="filters-title">Área de Administração</h2>
+            <!-- Seção: Conselho do Idoso -->
+            <section id="conselho-idoso" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">Conselho do Idoso</h1>
+                    <p class="section-subtitle">Consulta e dados dos Conselhos Municipais do Idoso no Estado de São Paulo</p>
+                </div>
+                
+                <div class="filters-card">
+                    <h2 class="filters-title">Filtros de Consulta</h2>
+                    <form class="filters-grid" id="filtros-idoso">
+                        <div class="form-group">
+                            <label for="macrorregiao-idoso" class="form-label">Macrorregião</label>
+                            <select id="macrorregiao-idoso" class="form-control">
+                                <option value="">Todas as Macrorregiões</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="drads-idoso" class="form-label">DRADS</label>
+                            <select id="drads-idoso" class="form-control">
+                                <option value="">Todas as DRADS</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="status-idoso" class="form-label">Status do Conselho</label>
+                            <select id="status-idoso" class="form-control">
+                                <option value="">Todos os Status</option>
+                                <option value="Sim">Com Conselho Ativo</option>
+                                <option value="Não há registro">Sem Conselho</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="busca-idoso" class="form-label">Buscar Município</label>
+                            <input type="text" id="busca-idoso" class="form-control" placeholder="Digite o nome do município">
+                        </div>
+                    </form>
+                    
+                    <div style="margin-top: 1rem;">
+                        <button type="button" class="btn btn-primary" onclick="aplicarFiltros('idoso')">Aplicar Filtros</button>
+                        <button type="button" class="btn btn-secondary" onclick="limparFiltros('idoso')">Limpar Filtros</button>
+                    </div>
+                </div>
+
+                <div class="results-card">
+                    <div class="results-header">
+                        <h2 class="results-title">Resultados da Consulta</h2>
+                        <div id="results-count-idoso" class="results-count">Carregando dados...</div>
+                    </div>
+                    
+                    <div id="loading-idoso" class="loading">
+                        Carregando dados dos municípios...
+                    </div>
+                    
+                    <div class="table-container">
+                        <table id="table-idoso" class="table" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Município</th>
+                                    <th scope="col">DRADS</th>
+                                    <th scope="col">Macrorregião</th>
+                                    <th scope="col">População 2025</th>
+                                    <th scope="col">Conselho do Idoso</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-idoso">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Outras seções serão implementadas nas próximas fases -->
+            <section id="cmas" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">CMAS - Conselho Municipal de Assistência Social</h1>
+                    <p class="section-subtitle">Em desenvolvimento...</p>
+                </div>
+            </section>
+
+            <section id="cmdca" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">CMDCA - Conselho Municipal dos Direitos da Criança e do Adolescente</h1>
+                    <p class="section-subtitle">Em desenvolvimento...</p>
+                </div>
+            </section>
+
+            <section id="estabelecimentos" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">Estabelecimentos de Apoio</h1>
+                    <p class="section-subtitle">Em desenvolvimento...</p>
+                </div>
+            </section>
+
+            <section id="drads" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">Rede DRADS</h1>
+                    <p class="section-subtitle">Em desenvolvimento...</p>
+                </div>
+            </section>
+
+            <section id="stats-pcd" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">Estatísticas - Pessoa com Deficiência</h1>
+                    <p class="section-subtitle">Em desenvolvimento...</p>
+                </div>
+            </section>
+
+            <section id="stats-idoso" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">Estatísticas - Idoso</h1>
+                    <p class="section-subtitle">Em desenvolvimento...</p>
+                </div>
+            </section>
+
+            <section id="stats-geral" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">Estatísticas Gerais</h1>
+                    <p class="section-subtitle">Em desenvolvimento...</p>
+                </div>
+            </section>
+
+            <section id="admin" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">Área Administrativa</h1>
+                    <p class="section-subtitle">Acesso restrito para administradores autorizados</p>
+                </div>
                 
                 <div class="alert alert-error">
                     <strong>Acesso Restrito:</strong> Esta área é destinada apenas para administradores autorizados. 
@@ -497,8 +694,8 @@
                     <li>Gestão de dados de estabelecimentos</li>
                 </ul>
             </section>
-        </div>
-    </main>
+        </main>
+    </div>
 
     <script src="app.js"></script>
 </body>

@@ -1,11 +1,16 @@
-// Sistema de Conselhos Municipais - JavaScript
+// Sistema de Conselhos Municipais - JavaScript com Menu Lateral
 class ConselhosApp {
     constructor() {
         this.municipios = [];
-        this.filteredMunicipios = [];
+        this.filteredData = {
+            pcd: [],
+            idoso: [],
+            cmas: [],
+            cmdca: []
+        };
         this.macrorregioes = [];
         this.drads = [];
-        this.stats = null;
+        this.currentSection = 'conselho-pcd';
         
         this.init();
     }
@@ -16,27 +21,46 @@ class ConselhosApp {
     }
     
     setupEventListeners() {
-        // Navegação por abas
-        document.querySelectorAll('.nav-tab').forEach(tab => {
-            tab.addEventListener('click', (e) => this.switchTab(e.target.id));
+        // Menu lateral
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const section = e.target.getAttribute('data-section');
+                if (section) {
+                    this.switchSection(section);
+                }
+            });
         });
         
-        // Filtros
-        document.getElementById('aplicar-filtros').addEventListener('click', () => this.applyFilters());
-        document.getElementById('limpar-filtros').addEventListener('click', () => this.clearFilters());
-        
-        // Enter key para busca
-        document.getElementById('busca').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                this.applyFilters();
+        // Filtros para cada tipo de conselho
+        ['pcd', 'idoso'].forEach(tipo => {
+            const elements = {
+                macrorregiao: document.getElementById(`macrorregiao-${tipo}`),
+                drads: document.getElementById(`drads-${tipo}`),
+                status: document.getElementById(`status-${tipo}`),
+                busca: document.getElementById(`busca-${tipo}`)
+            };
+            
+            // Event listeners para filtros automáticos
+            if (elements.macrorregiao) {
+                elements.macrorregiao.addEventListener('change', () => this.aplicarFiltros(tipo));
+            }
+            if (elements.drads) {
+                elements.drads.addEventListener('change', () => this.aplicarFiltros(tipo));
+            }
+            if (elements.status) {
+                elements.status.addEventListener('change', () => this.aplicarFiltros(tipo));
+            }
+            
+            // Enter key para busca
+            if (elements.busca) {
+                elements.busca.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.aplicarFiltros(tipo);
+                    }
+                });
             }
         });
-        
-        // Filtros automáticos
-        document.getElementById('macrorregiao').addEventListener('change', () => this.applyFilters());
-        document.getElementById('drads').addEventListener('change', () => this.applyFilters());
-        document.getElementById('conselho-pcd').addEventListener('change', () => this.applyFilters());
     }
     
     async loadInitialData() {
@@ -57,12 +81,15 @@ class ConselhosApp {
             const dradsData = await dradsResponse.json();
             
             this.municipios = municipiosData.data || [];
-            this.filteredMunicipios = [...this.municipios];
             this.macrorregioes = macrorregiaoData.data || [];
             this.drads = dradsData.data || [];
             
+            // Inicializar dados filtrados
+            this.filteredData.pcd = [...this.municipios];
+            this.filteredData.idoso = [...this.municipios];
+            
             this.populateFilters();
-            this.renderMunicipios();
+            this.renderCurrentSection();
             this.hideLoading();
             
         } catch (error) {
@@ -71,55 +98,78 @@ class ConselhosApp {
         }
     }
     
-    async loadStats() {
-        try {
-            document.getElementById('stats-loading').style.display = 'block';
-            document.getElementById('stats-content').style.display = 'none';
+    populateFilters() {
+        // Popula filtros para cada tipo de conselho
+        ['pcd', 'idoso'].forEach(tipo => {
+            // Macrorregiões
+            const macroSelect = document.getElementById(`macrorregiao-${tipo}`);
+            if (macroSelect) {
+                // Limpar opções existentes (exceto a primeira)
+                while (macroSelect.children.length > 1) {
+                    macroSelect.removeChild(macroSelect.lastChild);
+                }
+                
+                this.macrorregioes.forEach(macro => {
+                    const option = document.createElement('option');
+                    option.value = macro.id;
+                    option.textContent = `Macrorregião ${String(macro.id).padStart(2, '0')}`;
+                    macroSelect.appendChild(option);
+                });
+            }
             
-            const response = await fetch('/api/estatisticas');
-            if (!response.ok) throw new Error('Erro ao carregar estatísticas');
+            // DRADS
+            const dradsSelect = document.getElementById(`drads-${tipo}`);
+            if (dradsSelect) {
+                // Limpar opções existentes (exceto a primeira)
+                while (dradsSelect.children.length > 1) {
+                    dradsSelect.removeChild(dradsSelect.lastChild);
+                }
+                
+                this.drads.forEach(drad => {
+                    const option = document.createElement('option');
+                    option.value = drad.nome;
+                    option.textContent = drad.nome;
+                    dradsSelect.appendChild(option);
+                });
+            }
+        });
+    }
+    
+    switchSection(sectionId) {
+        // Atualizar menu ativo
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        document.querySelector(`[data-section="${sectionId}"]`).classList.add('active');
+        
+        // Mostrar seção correspondente
+        document.querySelectorAll('.content-section').forEach(section => {
+            section.classList.remove('active');
+        });
+        
+        const targetSection = document.getElementById(sectionId);
+        if (targetSection) {
+            targetSection.classList.add('active');
+            this.currentSection = sectionId;
             
-            const data = await response.json();
-            this.stats = data.data;
-            
-            this.renderStats();
-            
-            document.getElementById('stats-loading').style.display = 'none';
-            document.getElementById('stats-content').style.display = 'block';
-            
-        } catch (error) {
-            this.showError('Erro ao carregar estatísticas: ' + error.message);
-            document.getElementById('stats-loading').style.display = 'none';
+            // Renderizar dados se necessário
+            if (sectionId === 'conselho-pcd' || sectionId === 'conselho-idoso') {
+                const tipo = sectionId.replace('conselho-', '');
+                this.renderMunicipios(tipo);
+            }
         }
     }
     
-    populateFilters() {
-        // Macrorregiões
-        const macroSelect = document.getElementById('macrorregiao');
-        this.macrorregioes.forEach(macro => {
-            const option = document.createElement('option');
-            option.value = macro.id;
-            option.textContent = macro.nome;
-            macroSelect.appendChild(option);
-        });
+    aplicarFiltros(tipo) {
+        const macrorregiao = document.getElementById(`macrorregiao-${tipo}`)?.value;
+        const drads = document.getElementById(`drads-${tipo}`)?.value;
+        const status = document.getElementById(`status-${tipo}`)?.value;
+        const busca = document.getElementById(`busca-${tipo}`)?.value?.toLowerCase();
         
-        // DRADS
-        const dradsSelect = document.getElementById('drads');
-        this.drads.forEach(drad => {
-            const option = document.createElement('option');
-            option.value = drad.nome;
-            option.textContent = drad.nome;
-            dradsSelect.appendChild(option);
-        });
-    }
-    
-    applyFilters() {
-        const macrorregiao = document.getElementById('macrorregiao').value;
-        const drads = document.getElementById('drads').value;
-        const conselhoPcd = document.getElementById('conselho-pcd').value;
-        const busca = document.getElementById('busca').value.toLowerCase();
+        const campoConselho = tipo === 'pcd' ? 'conselho_pcd_existe' : 'conselho_idoso_existe';
         
-        this.filteredMunicipios = this.municipios.filter(municipio => {
+        this.filteredData[tipo] = this.municipios.filter(municipio => {
             // Filtro por macrorregião
             if (macrorregiao && municipio.macrorregiao != macrorregiao) {
                 return false;
@@ -130,8 +180,8 @@ class ConselhosApp {
                 return false;
             }
             
-            // Filtro por conselho PcD
-            if (conselhoPcd && municipio.conselho_pcd_existe !== conselhoPcd) {
+            // Filtro por status do conselho
+            if (status && municipio[campoConselho] !== status) {
                 return false;
             }
             
@@ -143,43 +193,53 @@ class ConselhosApp {
             return true;
         });
         
-        this.renderMunicipios();
+        this.renderMunicipios(tipo);
     }
     
-    clearFilters() {
-        document.getElementById('macrorregiao').value = '';
-        document.getElementById('drads').value = '';
-        document.getElementById('conselho-pcd').value = '';
-        document.getElementById('busca').value = '';
+    limparFiltros(tipo) {
+        document.getElementById(`macrorregiao-${tipo}`).value = '';
+        document.getElementById(`drads-${tipo}`).value = '';
+        document.getElementById(`status-${tipo}`).value = '';
+        document.getElementById(`busca-${tipo}`).value = '';
         
-        this.filteredMunicipios = [...this.municipios];
-        this.renderMunicipios();
+        this.filteredData[tipo] = [...this.municipios];
+        this.renderMunicipios(tipo);
     }
     
-    renderMunicipios() {
-        const tbody = document.getElementById('municipios-tbody');
-        const table = document.getElementById('municipios-table');
-        const countElement = document.getElementById('results-count');
+    renderMunicipios(tipo) {
+        const tbody = document.getElementById(`tbody-${tipo}`);
+        const table = document.getElementById(`table-${tipo}`);
+        const countElement = document.getElementById(`results-count-${tipo}`);
+        const loadingElement = document.getElementById(`loading-${tipo}`);
+        
+        if (!tbody || !table || !countElement) return;
+        
+        // Ocultar loading
+        if (loadingElement) {
+            loadingElement.style.display = 'none';
+        }
+        
+        const data = this.filteredData[tipo] || [];
+        const campoConselho = tipo === 'pcd' ? 'conselho_pcd_existe' : 'conselho_idoso_existe';
+        const nomeConselho = tipo === 'pcd' ? 'Conselho PcD' : 'Conselho do Idoso';
         
         // Atualizar contador
-        countElement.textContent = `${this.filteredMunicipios.length} municípios encontrados`;
+        countElement.textContent = `${data.length} municípios encontrados`;
         
         // Limpar tabela
         tbody.innerHTML = '';
         
-        if (this.filteredMunicipios.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: #666;">Nenhum município encontrado com os filtros aplicados</td></tr>';
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: #666;">Nenhum município encontrado com os filtros aplicados</td></tr>`;
         } else {
-            this.filteredMunicipios.forEach(municipio => {
+            data.forEach(municipio => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td><strong>${this.escapeHtml(municipio.nome_municipio)}</strong></td>
                     <td>${this.escapeHtml(municipio.drads || 'Não informado')}</td>
-                    <td>Macro ${municipio.macrorregiao || 'N/A'}</td>
+                    <td>Macro ${String(municipio.macrorregiao || 'N/A').padStart(2, '0')}</td>
                     <td>${this.formatNumber(municipio.populacao_2025)}</td>
-                    <td>${this.renderStatusBadge(municipio.conselho_pcd_existe)}</td>
-                    <td>${this.renderStatusBadge(municipio.cmas_existe)}</td>
-                    <td>${this.renderStatusBadge(municipio.cmdca_existe)}</td>
+                    <td>${this.renderStatusBadge(municipio[campoConselho])}</td>
                 `;
                 tbody.appendChild(row);
             });
@@ -188,44 +248,12 @@ class ConselhosApp {
         table.style.display = 'table';
     }
     
-    renderStats() {
-        if (!this.stats) return;
-        
-        // Estatísticas gerais
-        const statsGrid = document.getElementById('stats-grid');
-        statsGrid.innerHTML = `
-            <div class="stat-card">
-                <div class="stat-number">${this.stats.total_municipios}</div>
-                <div class="stat-label">Total de Municípios</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">${this.stats.com_conselho_pcd}</div>
-                <div class="stat-label">Com Conselho PcD</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">${this.stats.sem_conselho_pcd}</div>
-                <div class="stat-label">Sem Conselho PcD</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">${this.stats.percentual_com_conselho}%</div>
-                <div class="stat-label">Percentual com Conselho</div>
-            </div>
-        `;
-        
-        // Estatísticas por macrorregião
-        const macroTbody = document.getElementById('stats-macro-tbody');
-        macroTbody.innerHTML = '';
-        
-        this.stats.por_macrorregiao.forEach(macro => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>Macrorregião ${macro.macrorregiao}</td>
-                <td>${macro.total}</td>
-                <td>${macro.com_conselho_pcd}</td>
-                <td>${macro.percentual}%</td>
-            `;
-            macroTbody.appendChild(row);
-        });
+    renderCurrentSection() {
+        if (this.currentSection === 'conselho-pcd') {
+            this.renderMunicipios('pcd');
+        } else if (this.currentSection === 'conselho-idoso') {
+            this.renderMunicipios('idoso');
+        }
     }
     
     renderStatusBadge(status) {
@@ -238,42 +266,15 @@ class ConselhosApp {
         return `<span class="status-badge ${className}">${text}</span>`;
     }
     
-    switchTab(tabId) {
-        // Remover active de todas as abas
-        document.querySelectorAll('.nav-tab').forEach(tab => {
-            tab.classList.remove('active');
-            tab.setAttribute('aria-selected', 'false');
-        });
-        
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.remove('active');
-        });
-        
-        // Ativar aba selecionada
-        const activeTab = document.getElementById(tabId);
-        const targetTabId = tabId.replace('-btn', '-tab');
-        const targetContent = document.getElementById(targetTabId);
-        
-        if (activeTab && targetContent) {
-            activeTab.classList.add('active');
-            activeTab.setAttribute('aria-selected', 'true');
-            targetContent.classList.add('active');
-            
-            // Carregar dados específicos da aba
-            if (tabId === 'estatisticas-btn' && !this.stats) {
-                this.loadStats();
-            }
-        }
-    }
-    
     hideLoading() {
-        document.getElementById('loading').style.display = 'none';
+        document.querySelectorAll('[id^="loading-"]').forEach(element => {
+            element.style.display = 'none';
+        });
     }
     
     showError(message) {
-        const errorElement = document.getElementById('error-message');
-        errorElement.textContent = message;
-        errorElement.style.display = 'block';
+        console.error(message);
+        // Implementar exibição de erro se necessário
     }
     
     escapeHtml(text) {
@@ -289,9 +290,22 @@ class ConselhosApp {
     }
 }
 
+// Funções globais para compatibilidade com os botões
+function aplicarFiltros(tipo) {
+    if (window.app) {
+        window.app.aplicarFiltros(tipo);
+    }
+}
+
+function limparFiltros(tipo) {
+    if (window.app) {
+        window.app.limparFiltros(tipo);
+    }
+}
+
 // Inicializar aplicação quando o DOM estiver carregado
 document.addEventListener('DOMContentLoaded', () => {
-    new ConselhosApp();
+    window.app = new ConselhosApp();
 });
 
 // Melhorar acessibilidade com navegação por teclado

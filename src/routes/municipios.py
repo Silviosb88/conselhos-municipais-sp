@@ -202,3 +202,47 @@ def listar_drads():
             'error': str(e)
         }), 500
 
+
+@municipios_bp.route('/municipios/editar', methods=['POST'])
+def editar_municipio():
+    """Edita dados de um município (específico para Conselhos PcD)"""
+    try:
+        dados = request.get_json()
+        
+        if not dados or not dados.get('municipio_id'):
+            return jsonify({'success': False, 'message': 'ID do município é obrigatório'}), 400
+        
+        municipio_id = dados.get('municipio_id')
+        conselho_pcd_existe = dados.get('conselho_pcd_existe')
+        observacoes = dados.get('observacoes', '')
+        
+        if not conselho_pcd_existe:
+            return jsonify({'success': False, 'message': 'Status do conselho é obrigatório'}), 400
+        
+        # Buscar município
+        municipio = Municipio.query.get(municipio_id)
+        if not municipio:
+            return jsonify({'success': False, 'message': 'Município não encontrado'}), 404
+        
+        # Atualizar dados
+        municipio.conselho_pcd_existe = conselho_pcd_existe
+        # Adicionar campo observacoes se não existir no modelo
+        if hasattr(municipio, 'observacoes'):
+            municipio.observacoes = observacoes
+        
+        # Atualizar data de modificação
+        from datetime import datetime
+        municipio.data_atualizacao = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Dados atualizados com sucesso',
+            'municipio': municipio.to_dict()
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro interno: {str(e)}'}), 500
+

@@ -32,7 +32,7 @@ class ConselhosApp {
         });
         
         // Filtros para cada tipo de conselho
-        ['pcd', 'idoso'].forEach(tipo => {
+        ['pcd', 'idoso', 'cmas', 'cmdca'].forEach(tipo => {
             const elements = {
                 macrorregiao: document.getElementById(`macrorregiao-${tipo}`),
                 drads: document.getElementById(`drads-${tipo}`),
@@ -87,6 +87,8 @@ class ConselhosApp {
             // Inicializar dados filtrados
             this.filteredData.pcd = [...this.municipios];
             this.filteredData.idoso = [...this.municipios];
+            this.filteredData.cmas = [...this.municipios];
+            this.filteredData.cmdca = [...this.municipios];
             
             this.populateFilters();
             this.renderCurrentSection();
@@ -100,7 +102,7 @@ class ConselhosApp {
     
     populateFilters() {
         // Popula filtros para cada tipo de conselho
-        ['pcd', 'idoso'].forEach(tipo => {
+        ['pcd', 'idoso', 'cmas', 'cmdca'].forEach(tipo => {
             // Macrorregiões
             const macroSelect = document.getElementById(`macrorregiao-${tipo}`);
             if (macroSelect) {
@@ -154,7 +156,7 @@ class ConselhosApp {
             this.currentSection = sectionId;
             
             // Renderizar dados se necessário
-            if (sectionId === 'conselho-pcd' || sectionId === 'conselho-idoso') {
+            if (sectionId === 'conselho-pcd' || sectionId === 'conselho-idoso' || sectionId === 'cmas' || sectionId === 'cmdca') {
                 const tipo = sectionId.replace('conselho-', '');
                 this.renderMunicipios(tipo);
             }
@@ -167,7 +169,10 @@ class ConselhosApp {
         const status = document.getElementById(`status-${tipo}`)?.value;
         const busca = document.getElementById(`busca-${tipo}`)?.value?.toLowerCase();
         
-        const campoConselho = tipo === 'pcd' ? 'conselho_pcd_existe' : 'conselho_idoso_existe';
+        const campoConselho = tipo === 'pcd' ? 'conselho_pcd_existe' : 
+                             tipo === 'idoso' ? 'conselho_idoso_existe' :
+                             tipo === 'cmas' ? 'cmas_existe' :
+                             tipo === 'cmdca' ? 'cmdca_existe' : 'conselho_pcd_existe';
         
         this.filteredData[tipo] = this.municipios.filter(municipio => {
             // Filtro por macrorregião
@@ -220,8 +225,14 @@ class ConselhosApp {
         }
         
         const data = this.filteredData[tipo] || [];
-        const campoConselho = tipo === 'pcd' ? 'conselho_pcd_existe' : 'conselho_idoso_existe';
-        const nomeConselho = tipo === 'pcd' ? 'Conselho PcD' : 'Conselho do Idoso';
+        const campoConselho = tipo === 'pcd' ? 'conselho_pcd_existe' : 
+                             tipo === 'idoso' ? 'conselho_idoso_existe' :
+                             tipo === 'cmas' ? 'cmas_existe' :
+                             tipo === 'cmdca' ? 'cmdca_existe' : 'conselho_pcd_existe';
+        const nomeConselho = tipo === 'pcd' ? 'Conselho PcD' : 
+                            tipo === 'idoso' ? 'Conselho do Idoso' :
+                            tipo === 'cmas' ? 'CMAS' :
+                            tipo === 'cmdca' ? 'CMDCA' : 'Conselho PcD';
         
         // Atualizar contador
         countElement.textContent = `${data.length} municípios encontrados`;
@@ -234,12 +245,19 @@ class ConselhosApp {
         } else {
             data.forEach(municipio => {
                 const row = document.createElement('tr');
+                
+                // Adicionar botão de edição apenas para PcD
+                const acaoCell = tipo === 'pcd' ? 
+                    `<td><button type="button" class="btn-edit" onclick="abrirModalEdicao(${municipio.id})" aria-label="Editar dados de ${this.escapeHtml(municipio.nome_municipio)}">Editar</button></td>` : 
+                    '';
+                
                 row.innerHTML = `
                     <td><strong>${this.escapeHtml(municipio.nome_municipio)}</strong></td>
                     <td>${this.escapeHtml(municipio.drads || 'Não informado')}</td>
                     <td>Macro ${String(municipio.macrorregiao || 'N/A').padStart(2, '0')}</td>
                     <td>${this.formatNumber(municipio.populacao_2025)}</td>
                     <td>${this.renderStatusBadge(municipio[campoConselho])}</td>
+                    ${acaoCell}
                 `;
                 tbody.appendChild(row);
             });
@@ -253,6 +271,10 @@ class ConselhosApp {
             this.renderMunicipios('pcd');
         } else if (this.currentSection === 'conselho-idoso') {
             this.renderMunicipios('idoso');
+        } else if (this.currentSection === 'cmas') {
+            this.renderMunicipios('cmas');
+        } else if (this.currentSection === 'cmdca') {
+            this.renderMunicipios('cmdca');
         }
     }
     
@@ -318,4 +340,299 @@ document.addEventListener('keydown', (e) => {
         }
     }
 });
+
+
+
+// Funções para modal de edição
+function abrirModalEdicao(municipioId) {
+    if (!window.app) return;
+    
+    const municipio = window.app.municipios.find(m => m.id === municipioId);
+    if (!municipio) {
+        alert('Município não encontrado');
+        return;
+    }
+    
+    // Preencher dados do modal
+    document.getElementById('edit-municipio-id').value = municipio.id;
+    document.getElementById('edit-municipio-nome').value = municipio.nome_municipio;
+    document.getElementById('edit-drads').value = municipio.drads || 'Não informado';
+    document.getElementById('edit-macrorregiao').value = `Macro ${String(municipio.macrorregiao || 'N/A').padStart(2, '0')}`;
+    document.getElementById('edit-populacao').value = new Intl.NumberFormat('pt-BR').format(municipio.populacao_2025 || 0);
+    document.getElementById('edit-conselho-pcd').value = municipio.conselho_pcd_existe || '';
+    document.getElementById('edit-observacoes').value = municipio.observacoes || '';
+    
+    // Mostrar modal
+    document.getElementById('modal-edit-pcd').style.display = 'flex';
+    document.getElementById('modal-overlay').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Focar no primeiro campo editável
+    document.getElementById('edit-conselho-pcd').focus();
+}
+
+function fecharModalEdicao() {
+    document.getElementById('modal-edit-pcd').style.display = 'none';
+    document.getElementById('modal-overlay').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+async function salvarEdicao() {
+    const form = document.getElementById('form-edit-pcd');
+    const formData = new FormData(form);
+    
+    const dados = {
+        municipio_id: formData.get('municipio_id'),
+        conselho_pcd_existe: formData.get('conselho_pcd_existe'),
+        observacoes: formData.get('observacoes') || ''
+    };
+    
+    if (!dados.conselho_pcd_existe) {
+        alert('Por favor, selecione o status do conselho');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/municipios/editar', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dados)
+        });
+        
+        if (!response.ok) {
+            throw new Error('Erro ao salvar dados');
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Atualizar dados locais
+            const municipio = window.app.municipios.find(m => m.id == dados.municipio_id);
+            if (municipio) {
+                municipio.conselho_pcd_existe = dados.conselho_pcd_existe;
+                municipio.observacoes = dados.observacoes;
+            }
+            
+            // Recarregar tabela
+            window.app.aplicarFiltros('pcd');
+            
+            // Fechar modal
+            fecharModalEdicao();
+            
+            alert('Dados salvos com sucesso!');
+        } else {
+            throw new Error(result.message || 'Erro ao salvar dados');
+        }
+        
+    } catch (error) {
+        console.error('Erro ao salvar:', error);
+        alert('Erro ao salvar dados: ' + error.message);
+    }
+}
+
+// Fechar modal com ESC
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('modal-edit-pcd');
+        if (modal && modal.style.display === 'flex') {
+            fecharModalEdicao();
+        }
+    }
+});
+
+
+// Funções de impressão e relatórios
+function imprimirRelatorio(tipo) {
+    if (!window.app) return;
+    
+    const data = window.app.filteredData[tipo] || [];
+    const nomeConselho = tipo === 'pcd' ? 'Pessoa com Deficiência' : 
+                        tipo === 'idoso' ? 'Idoso' :
+                        tipo === 'cmas' ? 'Assistência Social (CMAS)' :
+                        tipo === 'cmdca' ? 'Criança e Adolescente (CMDCA)' : 'Conselhos';
+    
+    // Criar janela de impressão
+    const printWindow = window.open('', '_blank');
+    
+    const campoConselho = tipo === 'pcd' ? 'conselho_pcd_existe' : 
+                         tipo === 'idoso' ? 'conselho_idoso_existe' :
+                         tipo === 'cmas' ? 'cmas_existe' :
+                         tipo === 'cmdca' ? 'cmdca_existe' : 'conselho_pcd_existe';
+    
+    // Filtrar dados por status
+    const comConselho = data.filter(m => m[campoConselho] === 'Sim');
+    const semConselho = data.filter(m => m[campoConselho] === 'Não há registro');
+    
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <title>Relatório - Conselhos ${nomeConselho}</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                h1 { color: #009440; border-bottom: 2px solid #009440; padding-bottom: 10px; }
+                h2 { color: #333; margin-top: 30px; }
+                .summary { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; }
+                .summary-item { display: inline-block; margin: 10px 20px 10px 0; }
+                .summary-number { font-size: 24px; font-weight: bold; color: #009440; }
+                .summary-label { font-size: 14px; color: #666; }
+                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f8f9fa; font-weight: bold; }
+                .status-sim { background-color: #d4edda; color: #155724; padding: 2px 6px; border-radius: 3px; }
+                .status-nao { background-color: #f8d7da; color: #721c24; padding: 2px 6px; border-radius: 3px; }
+                .footer { margin-top: 40px; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 10px; }
+                @media print {
+                    body { margin: 0; }
+                    .no-break { page-break-inside: avoid; }
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Relatório - Conselhos Municipais ${nomeConselho}</h1>
+            <p><strong>Estado de São Paulo</strong></p>
+            <p><strong>Data do Relatório:</strong> ${new Date().toLocaleDateString('pt-BR', { 
+                year: 'numeric', month: 'long', day: 'numeric', 
+                hour: '2-digit', minute: '2-digit' 
+            })}</p>
+            
+            <div class="summary">
+                <h2>Resumo Executivo</h2>
+                <div class="summary-item">
+                    <div class="summary-number">${data.length}</div>
+                    <div class="summary-label">Total de Municípios</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-number">${comConselho.length}</div>
+                    <div class="summary-label">Com Conselho Ativo</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-number">${semConselho.length}</div>
+                    <div class="summary-label">Sem Conselho</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-number">${data.length > 0 ? Math.round((comConselho.length / data.length) * 100) : 0}%</div>
+                    <div class="summary-label">Cobertura</div>
+                </div>
+            </div>
+            
+            <h2>Municípios SEM Conselho ${nomeConselho} (${semConselho.length})</h2>
+            <p><em>Lista prioritária para implementação de conselhos:</em></p>
+            <table class="no-break">
+                <thead>
+                    <tr>
+                        <th>Município</th>
+                        <th>DRADS</th>
+                        <th>Macrorregião</th>
+                        <th>População 2025</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${semConselho.map(municipio => `
+                        <tr>
+                            <td><strong>${municipio.nome_municipio}</strong></td>
+                            <td>${municipio.drads || 'Não informado'}</td>
+                            <td>Macro ${String(municipio.macrorregiao || 'N/A').padStart(2, '0')}</td>
+                            <td>${new Intl.NumberFormat('pt-BR').format(municipio.populacao_2025 || 0)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            
+            <h2>Municípios COM Conselho ${nomeConselho} (${comConselho.length})</h2>
+            <p><em>Conselhos ativos para parcerias e referências:</em></p>
+            <table class="no-break">
+                <thead>
+                    <tr>
+                        <th>Município</th>
+                        <th>DRADS</th>
+                        <th>Macrorregião</th>
+                        <th>População 2025</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${comConselho.map(municipio => `
+                        <tr>
+                            <td><strong>${municipio.nome_municipio}</strong></td>
+                            <td>${municipio.drads || 'Não informado'}</td>
+                            <td>Macro ${String(municipio.macrorregiao || 'N/A').padStart(2, '0')}</td>
+                            <td>${new Intl.NumberFormat('pt-BR').format(municipio.populacao_2025 || 0)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            
+            <div class="footer">
+                <p><strong>Sistema de Conselhos Municipais do Estado de São Paulo</strong></p>
+                <p>Relatório gerado automaticamente em ${new Date().toLocaleString('pt-BR')}</p>
+                <p>Total de registros processados: ${data.length} municípios</p>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    // Aguardar carregamento e imprimir
+    printWindow.onload = function() {
+        setTimeout(() => {
+            printWindow.print();
+        }, 500);
+    };
+}
+
+function exportarCSV(tipo) {
+    if (!window.app) return;
+    
+    const data = window.app.filteredData[tipo] || [];
+    const nomeConselho = tipo === 'pcd' ? 'PcD' : 
+                        tipo === 'idoso' ? 'Idoso' :
+                        tipo === 'cmas' ? 'CMAS' :
+                        tipo === 'cmdca' ? 'CMDCA' : 'Conselhos';
+    
+    const campoConselho = tipo === 'pcd' ? 'conselho_pcd_existe' : 
+                         tipo === 'idoso' ? 'conselho_idoso_existe' :
+                         tipo === 'cmas' ? 'cmas_existe' :
+                         tipo === 'cmdca' ? 'cmdca_existe' : 'conselho_pcd_existe';
+    
+    // Cabeçalho do CSV
+    const headers = [
+        'Município',
+        'DRADS',
+        'Macrorregião',
+        'População 2025',
+        `Conselho ${nomeConselho}`,
+        'Código IBGE'
+    ];
+    
+    // Dados do CSV
+    const csvData = data.map(municipio => [
+        `"${municipio.nome_municipio}"`,
+        `"${municipio.drads || 'Não informado'}"`,
+        `"Macro ${String(municipio.macrorregiao || 'N/A').padStart(2, '0')}"`,
+        municipio.populacao_2025 || 0,
+        `"${municipio[campoConselho] || 'N/A'}"`,
+        `"${municipio.codigo_ibge || 'N/A'}"`
+    ]);
+    
+    // Juntar cabeçalho e dados
+    const csvContent = [headers.join(','), ...csvData.map(row => row.join(','))].join('\n');
+    
+    // Criar e baixar arquivo
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `conselhos_${tipo}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 
